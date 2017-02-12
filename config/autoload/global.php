@@ -39,5 +39,15 @@ return [
             'navigation' => 'Zend\Navigation\Service\DefaultNavigationFactory',
         ],
     ],
+    'assetic_configuration' => [ //настройки модуля assetic (загрузка клиентских файлов)
+        'debug' => false,
+        'cacheEnabled' => true,
+        'cachePath' => __DIR__ . '/../../data/cache',
+        'webPath' => __DIR__ . '/../../public/ows/assets',//папка, куда assetic сохраняет клиентские файлы из всех модулей.
+        'basePath' => 'rdl/assets',
+        'acceptableErrors' => [
+            'error-rbac',
+        ],
+    ], // assets
 
 ];
