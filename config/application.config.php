@@ -11,7 +11,7 @@ return array(
         'AsseticBundle',
         'DoctrineModule',
         'DoctrineORMModule',
-        'ZfcRbac',
+        //'ZfcRbac',
 
         'Application',
     ),
