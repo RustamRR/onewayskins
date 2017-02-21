@@ -33,7 +33,7 @@ class IndexController extends AbstractActionController
                     $ptn = "/^http:\/\/steamcommunity\.com\/openid\/id\/(7[0-9]{15,25}+)$/";
                     preg_match($ptn, $id, $matches);
 
-
+                    $_SESSION['steamid'] = $matches[1];
                     if (empty($_SESSION['steam_uptodate']) or empty($_SESSION['steam_personaname'])) {
                         //require 'SteamConfig.php';
                         $url = file_get_contents("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=".$this->steamauth['apikey']."&steamids=".$_SESSION['steamid']);
@@ -73,7 +73,7 @@ class IndexController extends AbstractActionController
                     $steamprofile['uptodate'] = $_SESSION['steam_uptodate'];
 
                     print "<pre>";
-
+                    var_dump($_SESSION); die();
                     var_dump($content);die();
 
                     /*$_SESSION['steamid'] = $matches[1];
