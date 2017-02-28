@@ -61,6 +61,9 @@ class Module implements AutoloaderProviderInterface
                     Container::setDefaultManager($sessionManager);
                     return $sessionManager;
                 },
+                'Zend\Authentication\AuthenticationService' => function($serviceManager) {
+                    return $serviceManager->get('doctrine.authenticationservice.orm_default');
+                },
             ),
         );
     }
@@ -94,8 +97,8 @@ class Module implements AutoloaderProviderInterface
 
             $session->regenerateId(true);
             $container->init          = 1;
-            $container->remoteAddr    = $request->getServer()->get('REMOTE_ADDR');
-            $container->httpUserAgent = $request->getServer()->get('HTTP_USER_AGENT');
+            //$container->remoteAddr    = $request->getServer()->get('REMOTE_ADDR');
+            //$container->httpUserAgent = $request->getServer()->get('HTTP_USER_AGENT');
 
             $config = $serviceManager->get('Config');
             if (!isset($config['session'])) {

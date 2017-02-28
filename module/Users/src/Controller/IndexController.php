@@ -2,106 +2,101 @@
 
 namespace Users\Controller;
 
+use Application\Utils\UuidGenerator;
+use Users\Entity\Users;
+use Users\Form\UsersForm;
 use Users\Service\OpenidService;
+use Users\Service\UsersService;
 use Zend\Mvc\Controller\AbstractActionController;
+use Zend\ServiceManager\ServiceManager;
+use Zend\Session\Container;
+use Zend\Session\SessionManager;
 
 class IndexController extends AbstractActionController
 {
 
     protected $steamauth;
+    /** @var  UsersService */
+    protected $usersService;
 
-    public function __construct($steamauth)
+    public function __construct($usersService)
     {
-        $this->steamauth = $steamauth;
+        $this->usersService = $usersService;
     }
 
     public function indexAction()
     {
         $params = $this->params()->fromQuery();
-        
-        try {
-            //require 'SteamConfig.php';
-            $openid = new OpenidService($this->steamauth['domainname']);
 
-            if(!$openid->mode) {
-                $openid->identity = 'http://steamcommunity.com/openid';
-                header('Location: ' . $openid->authUrl());
-                exit();
-            } else {
-                if($openid->validate()) {
-                    $id = $openid->identity;
-                    $ptn = "/^http:\/\/steamcommunity\.com\/openid\/id\/(7[0-9]{15,25}+)$/";
-                    preg_match($ptn, $id, $matches);
+        $authData = $this->usersService->steamAuth();
+        $password = UuidGenerator::generateUuid();
 
-                    $_SESSION['steamid'] = $matches[1];
-                    if (empty($_SESSION['steam_uptodate']) or empty($_SESSION['steam_personaname'])) {
-                        //require 'SteamConfig.php';
-                        $url = file_get_contents("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=".$this->steamauth['apikey']."&steamids=".$_SESSION['steamid']);
-                        $content = json_decode($url, true);
-                        $_SESSION['steam_steamid'] = $content['response']['players'][0]['steamid'];
-                        $_SESSION['steam_communityvisibilitystate'] = $content['response']['players'][0]['communityvisibilitystate'];
-                        $_SESSION['steam_profilestate'] = $content['response']['players'][0]['profilestate'];
-                        $_SESSION['steam_personaname'] = $content['response']['players'][0]['personaname'];
-                        $_SESSION['steam_lastlogoff'] = $content['response']['players'][0]['lastlogoff'];
-                        $_SESSION['steam_profileurl'] = $content['response']['players'][0]['profileurl'];
-                        $_SESSION['steam_avatar'] = $content['response']['players'][0]['avatar'];
-                        $_SESSION['steam_avatarmedium'] = $content['response']['players'][0]['avatarmedium'];
-                        $_SESSION['steam_avatarfull'] = $content['response']['players'][0]['avatarfull'];
-                        $_SESSION['steam_personastate'] = $content['response']['players'][0]['personastate'];
-                        if (isset($content['response']['players'][0]['realname'])) {
-                            $_SESSION['steam_realname'] = $content['response']['players'][0]['realname'];
-                        } else {
-                            $_SESSION['steam_realname'] = "Real name not given";
-                        }
-                        $_SESSION['steam_primaryclanid'] = $content['response']['players'][0]['primaryclanid'];
-                        $_SESSION['steam_timecreated'] = $content['response']['players'][0]['timecreated'];
-                        $_SESSION['steam_uptodate'] = time();
-                    }
-                    $steamprofile['steamid'] = $_SESSION['steam_steamid'];
-                    $steamprofile['communityvisibilitystate'] = $_SESSION['steam_communityvisibilitystate'];
-                    $steamprofile['profilestate'] = $_SESSION['steam_profilestate'];
-                    $steamprofile['personaname'] = $_SESSION['steam_personaname'];
-                    $steamprofile['lastlogoff'] = $_SESSION['steam_lastlogoff'];
-                    $steamprofile['profileurl'] = $_SESSION['steam_profileurl'];
-                    $steamprofile['avatar'] = $_SESSION['steam_avatar'];
-                    $steamprofile['avatarmedium'] = $_SESSION['steam_avatarmedium'];
-                    $steamprofile['avatarfull'] = $_SESSION['steam_avatarfull'];
-                    $steamprofile['personastate'] = $_SESSION['steam_personastate'];
-                    $steamprofile['realname'] = $_SESSION['steam_realname'];
-                    $steamprofile['primaryclanid'] = $_SESSION['steam_primaryclanid'];
-                    $steamprofile['timecreated'] = $_SESSION['steam_timecreated'];
-                    $steamprofile['uptodate'] = $_SESSION['steam_uptodate'];
-
-                    print "<pre>";
-                    var_dump($_SESSION); die();
-                    var_dump($content);die();
-
-                    /*$_SESSION['steamid'] = $matches[1];
-                    if (!headers_sent()) {
-                        header('Location: '.$this->steamauth['loginpage']);
-                        exit;
-                    } else {
-                        ?>
-                        <script type="text/javascript">
-                            window.location.href="<?=$this->steamauth['loginpage']?>";
-                        </script>
-                        <noscript>
-                            <meta http-equiv="refresh" content="0;url=<?=$this->steamauth['loginpage']?>" />
-                        </noscript>
-                        <?php
-                        exit;
-                    }*/
-                } else {
-                    print "<pre>";
-                    var_dump($openid);
-                    //echo "User is not logged in.\n";
-                }
-
-            }
-        } catch(\Exception $e) {
-            var_dump($e);
+        if(!is_null($authData)){
+            $user = $this->usersService->checkUser($authData, $password);
         }
-        return array();
+        /** @var UsersForm $form */
+        $form = $this->getServiceLocator()
+            ->get('formElementManager')
+            ->get(UsersForm::class);
+        $form->setHydrator(new \Zend\Stdlib\Hydrator\ObjectProperty());
+        $form->bind(new Users());
+
+        $authData['password'] = $password;
+
+        $form->setData([
+            "auth" => $authData,
+        ]);
+
+        if($form->isValid()){
+            $data = $authData;
+
+            /** @var \Zend\Authentication\AuthenticationService $authService */
+            $authService = $this->getServiceLocator()->get('Zend\Authentication\AuthenticationService');
+            /** @var \DoctrineModule\Authentication\Adapter\ObjectRepository $adapter */
+            $adapter = $authService->getAdapter();
+//            $class_methods = get_class_methods($adapter);
+//            echo "<pre>";print_r($class_methods);exit;
+            $adapter->setIdentity($data["steamid"]);
+            $adapter->setCredential($data["password"]);
+
+            $authResult = $authService->authenticate();
+            if($authResult->isValid()){
+                $identity = $authResult->getIdentity();
+                $authService->getStorage()->write($identity);
+                return $this->redirect()->toRoute('application');
+            }else{
+                $messages = $authResult->getMessages();
+                var_dump($messages);die();
+            }
+        }else{
+            $messages = $form->getMessages();
+            var_dump($messages);
+        }
+
+        if($authData){
+            return $this->redirect()->toRoute('application');
+        }
+
+        return $this->redirect()->toRoute('application');
+    }
+
+    public function logoutAction(){
+        $auth = $this->getServiceLocator()->get('Zend\Authentication\AuthenticationService');
+
+        if($auth->hasIdentity()){
+            /**
+             * Если верить документации доктрины, то тут должен располагаться
+             * экземпляр Users\Entity\Users
+             */
+            $identity = $auth->getIdentity();
+        }
+
+        $auth->clearIdentity();
+
+        $sessionManager = new SessionManager();
+        $sessionManager->forgetMe();
+
+        return $this->redirect()->toRoute('application');
     }
 
     public function myAction(){
@@ -115,3 +110,4 @@ class IndexController extends AbstractActionController
         return array();
     }
 }
+

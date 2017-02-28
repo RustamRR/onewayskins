@@ -106,6 +106,16 @@ header {
     background-color: #040404;
     height: 216px;
 }
+
+.inAuth .steamImg > img {
+    display: block;
+    border: 2px #ffba00 solid;
+    border-radius: 40px;
+    margin: 12px;
+}
+.inAuth .steamLink > span {
+    display: block;
+}
 .logoCont span {
     display: block;
     position: absolute;
@@ -125,6 +135,18 @@ header {
 }
 .col-md-2.logoContCol{
 
+}
+.titleSlider h1 {
+    color: #fff;
+    text-shadow: 1px 1px 1px #000;
+    font-size: 80px;
+    line-height: 86px;
+}
+.titleSlider {
+    text-align: right;
+    padding-left: 184px;
+    padding-right: 30px;
+    padding-top: 48px;
 }
 .onlineWinnerLine {
     width: 100%;

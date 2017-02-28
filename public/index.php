@@ -19,5 +19,3 @@ require 'init_autoloader.php';
 
 // Run the application!
 Zend\Mvc\Application::init(require 'config/application.config.php')->run();
-ob_start();
-session_start();

@@ -1,3 +1,9 @@
+<?php
+$user = $this
+    ->getHelperPluginManager()
+    ->getServiceLocator()
+    ->get('Zend\Authentication\AuthenticationService');
+?>
 <?php echo $this->doctype(); ?>
 <html lang="en">
 <head>
@@ -70,16 +76,31 @@
                             <li><a href="#">Отзывы</a></li>
                         </ul>
                     </div>
-                    <div class="enterTheSteamCont">
-                        <div class="steamElement">
-                            <div class="steamImg">
-                                <img src="images/steamLogo.png">
-                            </div>
-                            <div class="steamLink">
-                                <a id="steamAuthLink" href="#"><span>Войти через<br>steam-аккаунт</span></a>
+                    <?php if($user->hasIdentity()):
+                        $identity = $user->getIdentity(); ?>
+                        <div class="enterTheSteamCont inAuth">
+                            <div class="steamElement">
+                                <div class="steamImg">
+                                    <img src="<?php print $identity->getUserpic(); ?>">
+                                </div>
+                                <div class="steamLink">
+                                    <span><?php print $identity->getPersonaname(); ?></span>
+                                    <a id="steamAuthLink" href="/logout"><span>Выход</span></a>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    <?php else: ?>
+                        <div class="enterTheSteamCont">
+                            <div class="steamElement">
+                                <div class="steamImg">
+                                    <img src="images/steamLogo.png">
+                                </div>
+                                <div class="steamLink">
+                                    <a id="steamAuthLink" href="/cabinet"><span>Войти через<br>steam-аккаунт</span></a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -240,8 +261,8 @@
 <!-- Placed at the end of the document so the pages load faster -->
 <!-- Scripts -->
 <?php echo $this->headScript()
+    ->prependFile($this->basePath("js/jquery.min.js"))
     ->prependFile($this->basePath('js/bootstrap.min.js'))
-    ->prependFile($this->basePath("https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"))
     ->prependFile($this->basePath('js/respond.min.js'), 'text/javascript', array('conditional' => 'lt IE 9',))
     ->prependFile($this->basePath('js/html5shiv.min.js'),   'text/javascript', array('conditional' => 'lt IE 9',))
 ; ?>
